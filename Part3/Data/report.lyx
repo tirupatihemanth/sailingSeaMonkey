@@ -1,0 +1,403 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding default
+\fontencoding global
+\font_roman ae
+\font_sans helvet
+\font_typewriter beramono
+\font_default_family rmdefault
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing onehalf
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2.5cm
+\topmargin 2.5cm
+\rightmargin 2.5cm
+\bottommargin 2.5cm
+\headheight 2.5cm
+\headsep 2.5cm
+\footskip 2.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\bullet 1 1 31 -1
+\bullet 2 1 35 -1
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict true
+\html_latex_start <span class='latex'>
+\html_latex_end </span>
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Software Implementation of Sailing Sea Monkey
+\end_layout
+
+\begin_layout Author
+CS13B027 Tirupati Hemanth Kumar
+\begin_inset Newline newline
+\end_inset
+
+CS13B046 Aravind Krishna
+\begin_inset Newline newline
+\end_inset
+
+CS13B062 Shreyas Harish
+\end_layout
+
+\begin_layout Abstract
+In the final part of assignment we implement the afore-mentioned block cipher,
+ optimized for 
+\emph on
+X86 
+\emph default
+architectures.
+ The efficiency lies in the fact that entire program of encryption(
+\begin_inset Formula $~$
+\end_inset
+
+15 KB) and decryption (
+\begin_inset Formula $~$
+\end_inset
+
+15 KB) can entirely fit into 
+\begin_inset Formula $L_{1}$
+\end_inset
+
+ caches of most modern day machines.
+\end_layout
+
+\begin_layout Section*
+Implementational Aspects of Ciphers
+\end_layout
+
+\begin_layout Standard
+The following are some software efficient techinques used for implementing
+ the cipher algorithm.
+\end_layout
+
+\begin_layout Itemize
+Size of Executable:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+We have designed our implementation so that it can effectively fit into
+ few blocks of 
+\emph on
+L1 
+\emph default
+cache.
+\end_layout
+
+\begin_layout Itemize
+Inorder to achieve this, we computed T-tables for the proposed MDS matrix.
+ T-table construction for encryption and decryption are described below.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Encryption T-table construction:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Since the MDS matrix, 
+\begin_inset Formula $M=\left(\begin{array}{cc}
+1 & 2\\
+1 & 3
+\end{array}\right)$
+\end_inset
+
+, the encryption T-table would contain 
+\begin_inset Formula $a\Vert d$
+\end_inset
+
+ and 
+\begin_inset Formula $2\times a\Vert3\times d$
+\end_inset
+
+ values.
+\end_layout
+
+\begin_layout Itemize
+However storing 
+\begin_inset Formula $a\Vert d$
+\end_inset
+
+ T-table is redundant since there is no multiplication involved in this
+ table(i.e, SBox outputs can be directly used).
+\begin_inset Formula $\implies$
+\end_inset
+
+We only need to store a single T-table that contains 
+\begin_inset Formula $2\times a\Vert3\times d$
+\end_inset
+
+ values which has size of 
+\begin_inset Formula $512$
+\end_inset
+
+ bytes.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Decryption T-table construction:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Inverse MDS matrix is given by 
+\begin_inset Formula $M^{-1}=\left(\begin{array}{cc}
+3 & 2\\
+1 & 1
+\end{array}\right)\implies$
+\end_inset
+
+Decryption T-table must contain 
+\begin_inset Formula $3\times a\Vert b$
+\end_inset
+
+ and 
+\begin_inset Formula $2\times a\Vert b$
+\end_inset
+
+ values.
+\end_layout
+
+\begin_layout Itemize
+This would account for size of 
+\begin_inset Formula $512\times2\, bytes.$
+\end_inset
+
+ On observing that this is same as size of storing 
+\begin_inset Formula $2$
+\end_inset
+
+ multiplication tables 
+\begin_inset Formula $(256\times2\, bytes)$
+\end_inset
+
+ in 
+\begin_inset Formula $AES_{128}$
+\end_inset
+
+ field, we can see that T-tables have space overhead over storing multiplication
+ tables.
+ Hence, we directly used multiplication tables of the field instead of T-tables
+ incase of decryption.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Mode Of Operation:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+We use the cipher in Cipher Block Chain Mode since it can provide integrity
+ of data (ordering of data) and also hides relation between similar blocks
+ of data (i.e.
+ low entropy information can also be transmitted securely).
+\end_layout
+
+\begin_layout Itemize
+For every encryption a new IV is generated psuedo randomly.
+ We fixed the first IV as null vector.
+\end_layout
+
+\begin_layout Itemize
+One disadvantage of using CBC mode is encryption would be done block by
+ block sequentially.
+ This would add high performance overhead when parallel encryption is desired.
+ However we ignored this disadvantage for simplistic software design.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Following graph provides runtime of implementation with various keys.
+ 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Graphics
+	filename timing.png
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Independence of runtime with key is important to prevent timing analysis
+ on cipher.This property is ensured in the implementation because no key
+ specific computations done so that the executable run time does not have
+ any correlation with key used.
+ 
+\end_layout
+
+\end_deeper
+\begin_layout Section*
+Changes to Previous Submission
+\end_layout
+
+\begin_layout Standard
+While encryption algorithm itself is left unchanged, its mode of operation
+ is fixed as CBC.
+\end_layout
+
+\begin_layout Section*
+Encryption time vs size of file
+\end_layout
+
+\begin_layout Standard
+The following graph depicts runtime of encryption and decryption on various
+ file sizes.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename untitled.png
+	scale 50
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename untitled1.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can see that run time of program is linear 
+\emph on
+w.r.t 
+\emph default
+number of bytes encrypted.
+ This can attributed to CBC mode of operation which encrypts the message
+ block by block.
+ Similar runtimes are observed in case of decryption since it involves same
+ order of operations as encryption.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename dtime.png
+	scale 50
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename dectime.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Working of the Cipher
+\end_layout
+
+\begin_layout Standard
+Working of cipher can verified using
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\ttfamily},numbers=right"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+$ make enc
+\end_layout
+
+\begin_layout Plain Layout
+
+$ make encrypt
+\end_layout
+
+\begin_layout Plain Layout
+
+$ make dec
+\end_layout
+
+\begin_layout Plain Layout
+
+$ make decrypt
+\end_layout
+
+\begin_layout Plain Layout
+
+$ diff alice.txt alice.decrypt
+\end_layout
+
+\begin_layout Plain Layout
+
+$ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Encryption algorithm also works for non ascii files without any modification.
+\end_layout
+
+\end_body
+\end_document
